@@ -12,13 +12,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Downloading...")
 
         try:
-            res = requests.get(f"https://tikwm.com/api/?url={text}").json()
+            # Add timeout (VERY IMPORTANT)
+            res = requests.get(
+                f"https://tikwm.com/api/?url={text}",
+                timeout=10
+            ).json()
+
             video_url = res["data"].get("play") or res["data"].get("wmplay")
 
             if video_url:
                 await update.message.reply_video(video_url)
             else:
                 await update.message.reply_text("❌ No video found")
+
+        except requests.exceptions.Timeout:
+            await update.message.reply_text("⏳ Server took too long. Try again.")
 
         except Exception as e:
             print(e)
@@ -28,5 +36,6 @@ app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
 print("Bot running...")
+
 import asyncio
 asyncio.run(app.run_polling())
