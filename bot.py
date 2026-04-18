@@ -12,25 +12,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Downloading...")
 
         try:
-            # Add timeout (VERY IMPORTANT)
             res = requests.get(
                 f"https://tikwm.com/api/?url={text}",
                 timeout=10
             ).json()
 
-            video_url = res["data"].get("play") or res["data"].get("wmplay")
+            data = res.get("data", {})
 
-            if video_url:
+            # Try multiple sources
+            video_url = (
+                data.get("play") or
+                data.get("wmplay") or
+                data.get("hdplay")
+            )
+
+            # Check if it's actually video
+            if video_url and video_url.endswith(".mp4"):
                 await update.message.reply_video(video_url)
             else:
-                await update.message.reply_text("❌ No video found")
-
-        except requests.exceptions.Timeout:
-            await update.message.reply_text("⏳ Server took too long. Try again.")
+                await update.message.reply_text("❌ Couldn't get proper video.")
 
         except Exception as e:
-            print(e)
-            await update.message.reply_text("❌ Error downloading")
+            print("ERROR:", e)
+            await update.message.reply_text("❌ Error downloading.")
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
